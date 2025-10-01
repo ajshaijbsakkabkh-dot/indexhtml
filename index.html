@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محول بيانات المانهوا إلى كود JavaScript (JSON) - Base64 كامل</title>
+    <title>محول بيانات المانهوا إلى كود JavaScript (JSON) - أداء محسن</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* الأنماط الأساسية (لم تتغير) */
+        /* الأنماط الأساسية */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; padding: 10px; background-color: #f0f4f8; direction: rtl;
@@ -79,12 +79,14 @@
         .output-btn { font-weight: bold; flex-grow: 1; margin: 0; padding: 12px 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .copy-btn { background-color: #ff5722; color: white; } 
         .download-btn { background-color: #007bff; }
+        
+        .progress-message { text-align: center; color: #17a2b8; font-weight: bold; padding: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>محول بيانات المانهوا إلى JavaScript/JSON ✨ (Base64 كامل)</h1>
+    <h1>محول بيانات المانهوا إلى JavaScript/JSON ✨ (أداء محسن)</h1>
     
     <button class="new-manhwa-btn" onclick="resetForm()">+ إضافة مانهوا جديدة (مسح البيانات)</button>
     
@@ -215,7 +217,7 @@
     }
     
     // **********************************************
-    // دوال المعالجة والتوليد (تم تعديل generateDataCode)
+    // دوال المعالجة والتوليد (مُحسنة الأداء)
     // **********************************************
 
     function fileToBase64(file) {
@@ -231,7 +233,7 @@
         });
     }
 
-    // دالة النسخ اليدوي النهائية (لضمان النسخ في البيئات المقيدة)
+    // دالة النسخ اليدوي النهائية
     function fallbackCopy(text) {
         const outputArea = document.getElementById('output-area');
         outputArea.innerHTML = `<textarea id="manual-copy-area">${text}</textarea>`;
@@ -253,7 +255,7 @@
         copyBtn.className = "copy-btn output-btn";
         copyBtn.onclick = () => fallbackCopy(finalDataCode);
         
-        // 2. زر التنزيل (لتحميله كملف .js أو .txt)
+        // 2. زر التنزيل
         const downloadBtn = document.createElement('button');
         downloadBtn.innerText = "⬇️ تحميل كملف JS";
         downloadBtn.className = "download-btn output-btn";
@@ -273,7 +275,7 @@
         outputButtonsDiv.style.display = 'flex';
     }
 
-    // دالة التوليد الرئيسية
+    // دالة التوليد الرئيسية (مُعدلة لتحسين الأداء)
     async function generateDataCode() {
         const name = document.getElementById('manhwaName').value.trim();
         const category = document.getElementById('category').value.trim();
@@ -290,18 +292,19 @@
              return;
         }
 
-        outputArea.innerHTML = '<p style="text-align: center;">جارٍ المعالجة... تحويل الصور إلى Base64. ⏳</p>';
+        outputArea.innerHTML = '<p class="progress-message">جارٍ المعالجة... تحويل الصور إلى Base64. (قد يستغرق وقتاً حسب حجم الصور). ⏳</p>';
         document.getElementById('outputButtons').style.display = 'none';
 
         const chapterSections = document.querySelectorAll('.chapter-section');
         let totalImagesCount = 0;
         
         try {
+            // معالجة صورة الغلاف أولاً
             const coverBase64 = await fileToBase64(coverFile);
             
-            // بناء مصفوفة الفصول
             const chaptersArray = [];
             
+            // البدء في معالجة الفصول بشكل متسلسل لتقليل الضغط
             for (const chapterSection of chapterSections) {
                 const chapNum = parseInt(chapterSection.querySelector('.chapter-number-input').value.trim()) || 0;
                 const chapTitle = chapterSection.querySelector('input[placeholder="ادخل عنوان الفصل"]').value.trim();
@@ -309,12 +312,20 @@
                 const chapterImages = [];
                 const imageGroups = chapterSection.querySelectorAll('.image-input');
                 
+                // التكرار على مجموعات الصور داخل الفصل
                 for (const groupInput of imageGroups) {
                     const files = groupInput.files;
+                    
+                    // التكرار على كل ملف بشكل متسلسل (Sequential Processing)
                     for (const file of Array.from(files)) {
-                        const base64 = await fileToBase64(file);
-                        chapterImages.push(base64);
                         totalImagesCount++;
+                        // تحديث رسالة الحالة ليطمئن المستخدم
+                        outputArea.innerHTML = `<p class="progress-message">جاري معالجة الصورة رقم ${totalImagesCount} (${file.name})... 🔄</p>`;
+
+                        // *** استخدام await هنا يضمن الانتظار لانتهاء التحويل قبل البدء بالصورة التالية ***
+                        const base64 = await fileToBase64(file);
+                        
+                        chapterImages.push(base64);
                     }
                 }
 
@@ -322,7 +333,7 @@
                     chaptersArray.push({
                         num: chapNum,
                         title: chapTitle,
-                        images: chapterImages // هذه هي مصفوفة الروابط المشفرة (Base64)
+                        images: chapterImages 
                     });
                 }
             }
@@ -332,14 +343,14 @@
                  return;
             }
             
-            // الفصول يجب أن تكون مرتبة تصاعدياً في كود JS
+            // ترتيب الفصول
             chaptersArray.sort((a, b) => a.num - b.num); 
             
             // بناء كائن المانهوا
             const manhwaObject = {
                 id: currentManhwaId,
                 title: name,
-                cover: coverBase64, // صورة الغلاف Base64
+                cover: coverBase64, // Base64 كامل
                 category: category,
                 rating: rating,
                 chapters_count: chaptersArray.length,
@@ -347,11 +358,10 @@
                 chapters: chaptersArray
             };
             
-            // تحويل الكائن إلى سلسلة JSON منسقة
-            // *** ملاحظة: تم إزالة دالة .replace() لعرض رابط Base64 بالكامل ***
+            // تحويل الكائن إلى سلسلة JSON منسقة (بدون اختصار Base64)
             const jsonString = JSON.stringify(manhwaObject, null, 4);
 
-            // تغليفها في كود JavaScript ليتم دمجها في مصفوفة MANHWAS_DATA
+            // تغليفها في كود JavaScript
             const finalDataCode = `/* 💡 انسخ هذا الكائن و الصقه داخل مصفوفة MANHWAS_DATA */\n{\n${jsonString.substring(1, jsonString.length - 1)}\n}`;
                 
             // 5. عرض الكود وإضافة الأزرار
@@ -373,4 +383,3 @@
 
 </body>
 </html>
-# indexhtml

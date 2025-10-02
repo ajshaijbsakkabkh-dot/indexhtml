@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محول بيانات المانهوا إلى كود JavaScript (JSON) - أداء محسن</title>
+    <title>محول ودمج بيانات المانهوا إلى Base64 - إصدار ذكي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* الأنماط الأساسية */
@@ -16,7 +16,7 @@
             padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             box-sizing: border-box;
         }
-        h1 { color: #28a745; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.5em; }
+        h1 { color: #dc3545; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.5em; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 0.9em; }
         input[type="text"], input[type="number"], textarea, input[type="file"] { 
             padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; 
@@ -24,6 +24,13 @@
         }
         
         /* الأقسام */
+        .interface-section {
+            border: 2px solid #007bff;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            background-color: #eaf6ff;
+        }
         .info-section, .chapter-section {
             border: 2px solid #28a745;
             padding: 15px;
@@ -31,7 +38,6 @@
             border-radius: 10px;
             background-color: #e6ffe6;
         }
-        
         .cover-section {
             border: 2px solid #dc3545;
             padding: 15px;
@@ -43,16 +49,16 @@
         /* أنماط الأزرار */
         button { color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; margin-top: 10px; }
         .add-chapter-btn { background-color: #17a2b8; width: 100%; }
-        .generate-btn { background-color: #28a745; color: white; width: 100%; margin-top: 20px; font-weight: bold; }
+        .generate-btn { background-color: #dc3545; color: white; width: 100%; margin-top: 20px; font-weight: bold; }
         .new-manhwa-btn { background-color: #00b894; width: 100%; margin-bottom: 20px;} 
 
         /* منطقة الإخراج */
         #output-area { 
             margin-top: 10px;
-            border: 2px solid #28a745; 
+            border: 2px solid #007bff; /* لون جديد للناتج النهائي */
             padding: 0; 
             background-color: #fff; 
-            max-height: 400px; 
+            max-height: 600px; 
             overflow: auto; 
             border-radius: 8px; 
             box-sizing: border-box;
@@ -61,8 +67,8 @@
         /* نمط حقل النسخ اليدوي (textarea) */
         #manual-copy-area {
             width: 100%;
-            height: 400px; 
-            min-height: 400px;
+            height: 600px; 
+            min-height: 600px;
             border: none;
             padding: 15px;
             margin: 0;
@@ -86,14 +92,23 @@
 <body>
 
 <div class="container">
-    <h1>محول بيانات المانهوا إلى JavaScript/JSON ✨ (أداء محسن)</h1>
+    <h1>محول ومُدمج بيانات المانهوا الذكي Base64 ✨</h1>
     
-    <button class="new-manhwa-btn" onclick="resetForm()">+ إضافة مانهوا جديدة (مسح البيانات)</button>
+    <div class="interface-section">
+        <h2>1. لصق كود الواجهة الرئيسي <i class="fas fa-file-code"></i></h2>
+        <label for="interfaceCode">الصق كود ملف الواجهة بالكامل هنا (الملف الذي يحتوي على `const MANHWAS_DATA = [...]`):</label>
+        <textarea id="interfaceCode" rows="10" placeholder="الصق الكود كاملاً هنا..."></textarea>
+    </div>
+    
+    <button class="new-manhwa-btn" onclick="resetForm()">+ مسح النموذج والبدء بمانهوا جديدة</button>
     
     <div class="info-section">
-        <h2>معلومات المانهوا الأساسية</h2>
+        <h2>2. معلومات المانهوا الأساسية</h2>
         <label for="manhwaName">اسم المانهوا:</label>
         <input type="text" id="manhwaName" value="مانهوا جديدة" required>
+
+        <label for="manhwaId">معرف المانهوا (ID): <span style="color:#dc3545;">(هام: يجب أن يكون رقماً غير مستخدم)</span></label>
+        <input type="number" id="manhwaId" value="1" required>
 
         <label for="category">التصنيف (مفصول بفواصل):</label>
         <input type="text" id="category" value="أكشن، خيال، رومانسي" required>
@@ -106,7 +121,7 @@
     </div>
     
     <div class="cover-section">
-        <h2>صورة غلاف المانهوا <i class="fas fa-image"></i></h2>
+        <h2>3. صورة غلاف المانهوا <i class="fas fa-image"></i></h2>
         <label for="manhwaCoverFile">اختر صورة الغلاف (صورة واحدة فقط):</label>
         <input type="file" id="manhwaCoverFile" accept="image/*" required>
     </div>
@@ -118,21 +133,20 @@
 
     <button class="add-chapter-btn" onclick="addChapter()">+ إضافة فصل جديد</button>
 
-    <button class="generate-btn" onclick="generateDataCode()">توليد كود JavaScript للبيانات</button>
+    <button class="generate-btn" onclick="generateDataCode()">4. توليد ودمج الكود الكامل</button>
 
-    <h2>كود JavaScript الناتج: (انسخ والصق في ملف الواجهة)</h2>
+    <h2>الكود الكامل والمُعدل: (الصق هذا الناتج محل الكود القديم)</h2>
     
     <div id="outputContainer">
         <div id="outputButtons" class="output-controls" style="display:none;"></div>
         <div id="output-area">
-             <p style="text-align: center; color: #6c757d;">سيظهر كود مصفوفة `MANHWAS_DATA` هنا للنسخ اليدوي.</p>
+             <p style="text-align: center; color: #6c757d;">سيظهر كود الواجهة الكامل والمدمج هنا بعد التوليد.</p>
         </div>
     </div>
 </div>
 
 <script>
     let chapterCount = 0; 
-    let currentManhwaId = 1; 
 
     // **********************************************
     // دوال إدارة الواجهة (لم تتغير)
@@ -198,8 +212,9 @@
     }
     
     function resetForm() {
-        if (confirm("هل أنت متأكد من مسح جميع البيانات وإضافة مانهوا جديدة؟")) {
+        if (confirm("هل أنت متأكد من مسح جميع بيانات النموذج؟")) {
             document.getElementById('manhwaName').value = "مانهوا جديدة";
+            document.getElementById('manhwaId').value = "1";
             document.getElementById('category').value = "أكشن، خيال، رومانسي";
             document.getElementById('rating').value = "⭐ 4.5";
             document.getElementById('storySummary').value = "ملخص قصة المانهوا...";
@@ -207,17 +222,16 @@
             
             document.getElementById('chaptersContainer').innerHTML = '';
             chapterCount = 0;
-            currentManhwaId++; 
             addChapter(); 
             
-            document.getElementById('output-area').innerHTML = '<p style="text-align: center; color: #6c757d;">سيظهر كود مصفوفة `MANHWAS_DATA` هنا للنسخ اليدوي.</p>';
+            document.getElementById('output-area').innerHTML = '<p style="text-align: center; color: #6c757d;">سيظهر كود الواجهة الكامل والمدمج هنا بعد التوليد.</p>';
             document.getElementById('outputButtons').style.display = 'none';
-            alert("✅ تم مسح جميع البيانات. يمكنك البدء بإضافة المانهوا الجديدة.");
+            alert("✅ تم مسح بيانات النموذج. يرجى تعديل حقل المعرف (ID) إذا لزم الأمر.");
         }
     }
     
     // **********************************************
-    // دوال المعالجة والتوليد (مُحسنة الأداء)
+    // دوال المعالجة والدمج الذكي (مُعدلة)
     // **********************************************
 
     function fileToBase64(file) {
@@ -233,7 +247,6 @@
         });
     }
 
-    // دالة النسخ اليدوي النهائية
     function fallbackCopy(text) {
         const outputArea = document.getElementById('output-area');
         outputArea.innerHTML = `<textarea id="manual-copy-area">${text}</textarea>`;
@@ -249,25 +262,23 @@
         const outputButtonsDiv = document.getElementById('outputButtons');
         outputButtonsDiv.innerHTML = ''; 
 
-        // 1. زر النسخ (التنبيه بالنسخ اليدوي)
         const copyBtn = document.createElement('button');
-        copyBtn.innerText = "📝 نسخ كود البيانات (يدوي)";
+        copyBtn.innerText = "📝 نسخ الكود الكامل (يدوي)";
         copyBtn.className = "copy-btn output-btn";
         copyBtn.onclick = () => fallbackCopy(finalDataCode);
         
-        // 2. زر التنزيل
         const downloadBtn = document.createElement('button');
-        downloadBtn.innerText = "⬇️ تحميل كملف JS";
+        downloadBtn.innerText = "⬇️ تحميل كملف JS كامل";
         downloadBtn.className = "download-btn output-btn";
         downloadBtn.onclick = function() {
             const blob = new Blob([finalDataCode], { type: 'text/javascript;charset=utf-8' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `${name.replace(/\s/g, '_')}_DATA.js`;
+            a.download = `${name.replace(/\s/g, '_')}_MODIFIED_INTERFACE.js`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            alert("⚠️ إذا لم يبدأ التحميل، يرجى الاعتماد على النسخ اليدوي المباشر.");
+            alert("✅ تم تنزيل ملف الواجهة المعدل.");
         };
         
         outputButtonsDiv.appendChild(copyBtn);
@@ -275,9 +286,49 @@
         outputButtonsDiv.style.display = 'flex';
     }
 
-    // دالة التوليد الرئيسية (مُعدلة لتحسين الأداء)
+    // دالة الدمج الذكي
+    function insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON) {
+        const targetStart = 'const MANHWAS_DATA = [';
+        const targetEnd = '];';
+        
+        // 1. تحديد مكان نهاية مصفوفة MANHWAS_DATA
+        const arrayEndIndex = interfaceCode.lastIndexOf(targetEnd);
+        
+        if (arrayEndIndex === -1) {
+            alert("❌ خطأ: لم يتم العثور على `];` في كود الواجهة. تأكد من لصق الكود كاملاً وصيغة مصفوفة البيانات صحيحة.");
+            return null;
+        }
+
+        const contentBeforeEnd = interfaceCode.substring(0, arrayEndIndex);
+        
+        // 2. فحص ما قبل الإغلاق لتحديد ما إذا كنا بحاجة إلى فاصلة (,)
+        const trimmedContent = contentBeforeEnd.trim();
+        const lastChar = trimmedContent.slice(-1);
+
+        let commaPrefix = '';
+        if (lastChar === '{') {
+            // المصفوفة بها عنصر واحد على الأقل ينتهي بـ }، لذا نحتاج إلى فاصلة قبل الإضافة الجديدة.
+            commaPrefix = ',\n';
+        } else if (lastChar === '[') {
+            // المصفوفة فارغة `[`, لا نحتاج لفاصلة.
+            commaPrefix = '\n';
+        } else {
+             // حالة غير متوقعة، نفترض أن فاصلة مطلوبة (الوضع الآمن).
+             commaPrefix = ',\n';
+        }
+        
+        // 3. إعادة بناء الكود كاملاً
+        const newObjectInsertion = commaPrefix + manhwaObjectJSON + '\n';
+
+        const finalCode = contentBeforeEnd + newObjectInsertion + targetEnd + interfaceCode.substring(arrayEndIndex + targetEnd.length);
+        
+        return finalCode;
+    }
+
     async function generateDataCode() {
+        const interfaceCode = document.getElementById('interfaceCode').value.trim();
         const name = document.getElementById('manhwaName').value.trim();
+        const manhwaId = parseInt(document.getElementById('manhwaId').value.trim());
         const category = document.getElementById('category').value.trim();
         const story = document.getElementById('storySummary').value.trim();
         const rating = document.getElementById('rating').value.trim();
@@ -285,26 +336,30 @@
         
         const outputArea = document.getElementById('output-area');
         
-        // التحقق من الإدخالات
-        if (!name || !category || !story || !coverFile) {
-             outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء ملء جميع الحقول المطلوبة واختيار صورة الغلاف.</p>';
+        // التحقق من الإدخالات الأساسية وكود الواجهة
+        if (!interfaceCode.includes('const MANHWAS_DATA = [')) {
+             outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء لصق كود الواجهة بالكامل في الخانة المخصصة والتأكد من احتوائه على `const MANHWAS_DATA = [`. عملية الدمج لن تنجح بدونه.</p>';
              document.getElementById('outputButtons').style.display = 'none';
              return;
         }
 
-        outputArea.innerHTML = '<p class="progress-message">جارٍ المعالجة... تحويل الصور إلى Base64. (قد يستغرق وقتاً حسب حجم الصور). ⏳</p>';
+        if (!name || !category || !story || !coverFile || isNaN(manhwaId)) {
+             outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء ملء جميع حقول بيانات المانهوا المطلوبة واختيار صورة الغلاف.</p>';
+             document.getElementById('outputButtons').style.display = 'none';
+             return;
+        }
+
+        outputArea.innerHTML = '<p class="progress-message">جارٍ المعالجة... تحويل الصور إلى Base64. (سوف يتم تحديث رسالة الحالة). ⏳</p>';
         document.getElementById('outputButtons').style.display = 'none';
 
         const chapterSections = document.querySelectorAll('.chapter-section');
         let totalImagesCount = 0;
         
         try {
-            // معالجة صورة الغلاف أولاً
+            // 1. معالجة البيانات
             const coverBase64 = await fileToBase64(coverFile);
-            
             const chaptersArray = [];
             
-            // البدء في معالجة الفصول بشكل متسلسل لتقليل الضغط
             for (const chapterSection of chapterSections) {
                 const chapNum = parseInt(chapterSection.querySelector('.chapter-number-input').value.trim()) || 0;
                 const chapTitle = chapterSection.querySelector('input[placeholder="ادخل عنوان الفصل"]').value.trim();
@@ -312,19 +367,13 @@
                 const chapterImages = [];
                 const imageGroups = chapterSection.querySelectorAll('.image-input');
                 
-                // التكرار على مجموعات الصور داخل الفصل
                 for (const groupInput of imageGroups) {
                     const files = groupInput.files;
-                    
-                    // التكرار على كل ملف بشكل متسلسل (Sequential Processing)
                     for (const file of Array.from(files)) {
                         totalImagesCount++;
-                        // تحديث رسالة الحالة ليطمئن المستخدم
                         outputArea.innerHTML = `<p class="progress-message">جاري معالجة الصورة رقم ${totalImagesCount} (${file.name})... 🔄</p>`;
 
-                        // *** استخدام await هنا يضمن الانتظار لانتهاء التحويل قبل البدء بالصورة التالية ***
                         const base64 = await fileToBase64(file);
-                        
                         chapterImages.push(base64);
                     }
                 }
@@ -343,14 +392,13 @@
                  return;
             }
             
-            // ترتيب الفصول
             chaptersArray.sort((a, b) => a.num - b.num); 
             
-            // بناء كائن المانهوا
+            // 2. بناء كائن المانهوا
             const manhwaObject = {
-                id: currentManhwaId,
+                id: manhwaId,
                 title: name,
-                cover: coverBase64, // Base64 كامل
+                cover: coverBase64,
                 category: category,
                 rating: rating,
                 chapters_count: chaptersArray.length,
@@ -358,23 +406,26 @@
                 chapters: chaptersArray
             };
             
-            // تحويل الكائن إلى سلسلة JSON منسقة (بدون اختصار Base64)
-            const jsonString = JSON.stringify(manhwaObject, null, 4);
+            const manhwaObjectJSON = JSON.stringify(manhwaObject, null, 4);
 
-            // تغليفها في كود JavaScript
-            const finalDataCode = `/* 💡 انسخ هذا الكائن و الصقه داخل مصفوفة MANHWAS_DATA */\n{\n${jsonString.substring(1, jsonString.length - 1)}\n}`;
+            // 3. الدمج الذكي
+            const finalDataCode = insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON);
+
+            if (!finalDataCode) {
+                // خطأ في الدمج، الرسالة ظهرت بالفعل من الدالة insertManhwaIntoInterfaceCode
+                return;
+            }
                 
-            // 5. عرض الكود وإضافة الأزرار
-            outputArea.innerHTML = `<textarea id="manual-copy-area">${finalDataCode}</textarea>`;
+            // 4. عرض الكود وإضافة الأزرار
+            outputArea.innerHTML = `<textarea id="manual-copy-area" dir="ltr">${finalDataCode}</textarea>`;
             addOutputButtons(finalDataCode, name);
 
-            // 6. تحديد الكود تلقائياً
             document.getElementById('manual-copy-area').select();
             document.getElementById('manual-copy-area').setSelectionRange(0, 9999999);
 
 
         } catch (error) {
-            outputArea.innerHTML = `<p style="color: red; text-align: center;">حدث خطأ أثناء المعالجة: ${error.message}</p>`;
+            outputArea.innerHTML = `<p style="color: red; text-align: center;">حدث خطأ فني أثناء المعالجة: ${error.message}</p>`;
         }
     }
 

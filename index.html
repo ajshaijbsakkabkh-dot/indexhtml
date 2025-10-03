@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محول ودمج بيانات المانهوا الذكي - حفظ تلقائي</title>
+    <title>محول ودمج بيانات المانهوا الذكي - إصدار 2.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* الأنماط الأساسية */
@@ -97,7 +97,8 @@
     
     <div class="interface-section">
         <h2>1. لصق كود الواجهة الرئيسي <i class="fas fa-file-code"></i></h2>
-        <label for="interfaceCode">الصق كود ملف الواجهة بالكامل هنا (الملف الذي يحتوي على `const MANHWAS_DATA = [...]`):</label>
+        <p style="color: red; font-weight: bold;">⚠️ يجب أن يحتوي الكود الملصق على السطر `// NEW_MANHWA_INSERTION_POINT` داخل مصفوفة `MANHWAS_DATA`</p>
+        <label for="interfaceCode">الصق كود ملف الواجهة بالكامل هنا:</label>
         <textarea id="interfaceCode" rows="10" placeholder="الصق الكود كاملاً هنا..."></textarea>
     </div>
     
@@ -150,7 +151,7 @@
 <script>
     const STORAGE_KEY = 'manhwaToolData';
     let chapterCount = 0; 
-    let chapterData = []; // لتخزين بيانات الفصول مؤقتاً في Local Storage
+    let chapterData = [];
 
     // **********************************************
     // دوال إدارة الواجهة والحفظ التلقائي
@@ -192,28 +193,24 @@
             document.getElementById('rating').value = state.rating || '⭐ 4.5';
             document.getElementById('storySummary').value = state.storySummary || 'ملخص قصة المانهوا...';
             
-            // إعادة بناء الفصول
             chapterCount = 0;
             document.getElementById('chaptersContainer').innerHTML = '';
             
             if (state.chapters && state.chapters.length > 0) {
                 state.chapters.forEach(chap => {
-                    // إضافة الفصل
                     const index = chapterCount;
-                    addChapter(false, chap.chapterIndex); // لا تبدأ بإضافة مجموعة صور
+                    addChapter(false, chap.chapterIndex); 
                     
-                    // استعادة البيانات النصية للفصل
                     document.getElementById(`chapterNumber-${index}`).value = chap.num;
                     document.getElementById(`chapterTitle-${index}`).value = chap.title;
                     
-                    // يجب إضافة مجموعة صور واحدة على الأقل
                     addImageGroup(index);
                 });
             } else {
-                addChapter(); // إذا لم يكن هناك فصول، أضف فصلاً افتراضياً
+                addChapter(); 
             }
 
-            alert("✅ تم استعادة بيانات النموذج النصية من آخر حفظ تلقائي.");
+            // alert("✅ تم استعادة بيانات النموذج النصية من آخر حفظ تلقائي.");
             
         } catch (e) {
             console.error("Failed to load state from localStorage:", e);
@@ -225,22 +222,19 @@
         if (confirm("هل أنت متأكد من مسح جميع بيانات الحفظ التلقائي؟ سيتم مسح جميع المدخلات النصية المحفوظة.")) {
              localStorage.removeItem(STORAGE_KEY);
              alert("✅ تم مسح الحفظ التلقائي بنجاح.");
-             // يمكننا إعادة تحميل الحالة النظيفة للنموذج
              location.reload(); 
         }
     }
 
-    // دوال الواجهة (معدلة لاستخدام index خارجي)
     function removeElement(id) {
         const element = document.getElementById(id);
         if (element) {
             element.remove();
         }
-        saveFormState(); // حفظ بعد الإزالة
+        saveFormState(); 
     }
     
     function addImageGroup(chapterIndex) {
-        // ... (لم يتغير) ...
         const chapterDiv = document.getElementById(`chapter-${chapterIndex}`);
         if (!chapterDiv) return;
         
@@ -261,7 +255,7 @@
         if(chapterContentDiv) {
             chapterContentDiv.insertAdjacentHTML('beforeend', groupHtml);
         }
-        saveFormState(); // حفظ بعد الإضافة
+        saveFormState(); 
     }
     
     function addChapter(withGroup = true) {
@@ -293,7 +287,7 @@
         if(withGroup) {
             addImageGroup(index); 
         }
-        saveFormState(); // حفظ بعد الإضافة
+        saveFormState(); 
     }
     
     function resetForm() {
@@ -313,12 +307,12 @@
             document.getElementById('output-area').innerHTML = '<p style="text-align: center; color: #6c757d;">سيظهر كود الواجهة الكامل والمدمج هنا بعد التوليد.</p>';
             document.getElementById('outputButtons').style.display = 'none';
             alert("✅ تم مسح بيانات النموذج. يرجى تعديل حقل المعرف (ID) إذا لزم الأمر.");
-            saveFormState(); // حفظ الحالة الفارغة
+            saveFormState(); 
         }
     }
     
     // **********************************************
-    // دوال المعالجة والدمج الذكي (لم تتغير وظائفها)
+    // دوال المعالجة والدمج الذكي (المُحدَّثة)
     // **********************************************
 
     function fileToBase64(file) {
@@ -370,40 +364,40 @@
         outputButtonsDiv.style.display = 'flex';
     }
 
+    // *** الدالة المُعدَّلة والمُحسَّنة لتحديد نقطة الإدماج ***
     function insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON) {
-        const targetStart = 'const MANHWAS_DATA = [';
-        const targetEnd = '];';
-        
-        const arrayEndIndex = interfaceCode.lastIndexOf(targetEnd);
-        
-        if (arrayEndIndex === -1) {
-            alert("❌ خطأ: لم يتم العثور على `];` في كود الواجهة. تأكد من لصق الكود كاملاً وصيغة مصفوفة البيانات صحيحة.");
-            return null;
+        const insertionMarker = '// NEW_MANHWA_INSERTION_POINT';
+
+        if (!interfaceCode.includes(insertionMarker)) {
+             alert("❌ خطأ: لم يتم العثور على نقطة إدماج البيانات. يرجى العودة لملف الواجهة على GitHub وإضافة السطر: " + insertionMarker + " داخل مصفوفة MANHWAS_DATA.");
+             return null;
         }
 
-        const contentBeforeEnd = interfaceCode.substring(0, arrayEndIndex);
+        const markerIndex = interfaceCode.indexOf(insertionMarker);
         
-        const trimmedContent = contentBeforeEnd.trim();
-        const lastChar = trimmedContent.slice(-1);
+        // 1. Get the content just before the marker
+        let contentBeforeMarker = interfaceCode.substring(0, markerIndex).trim();
+        
+        // 2. Determine if a comma is needed for separation
+        const lastChar = contentBeforeMarker.slice(-1);
+        
+        let commaPrefix = '\n'; // لا يوجد فاصلة إذا كانت المصفوفة فارغة
 
-        let commaPrefix = '';
-        if (lastChar === '{') {
+        // إذا كان آخر حرف هو القوس المغلق لكائن {، فهذا يعني أن هناك كائن موجود ويجب إضافة فاصلة
+        if (lastChar === '}') {
             commaPrefix = ',\n';
-        } else if (lastChar === '[') {
-            commaPrefix = '\n';
-        } else {
-             commaPrefix = ',\n';
         }
-        
-        const newObjectInsertion = commaPrefix + manhwaObjectJSON + '\n';
 
-        const finalCode = contentBeforeEnd + newObjectInsertion + targetEnd + interfaceCode.substring(arrayEndIndex + targetEnd.length);
+        const newObjectInsertion = commaPrefix + manhwaObjectJSON + '\n';
+        
+        // 3. Reconstruct the code by inserting the new object before the marker
+        const finalCode = contentBeforeMarker + newObjectInsertion + interfaceCode.substring(markerIndex);
         
         return finalCode;
     }
 
+
     async function generateDataCode() {
-        // ... (الحصول على المدخلات) ...
         const interfaceCode = document.getElementById('interfaceCode').value.trim();
         const name = document.getElementById('manhwaName').value.trim();
         const manhwaId = parseInt(document.getElementById('manhwaId').value.trim());
@@ -414,7 +408,6 @@
         
         const outputArea = document.getElementById('output-area');
         
-        // ... (التحقق من الإدخالات) ...
         if (!interfaceCode.includes('const MANHWAS_DATA = [')) {
              outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء لصق كود الواجهة بالكامل والتأكد من احتوائه على `const MANHWAS_DATA = [`. عملية الدمج لن تنجح بدونه.</p>';
              document.getElementById('outputButtons').style.display = 'none';
@@ -434,7 +427,6 @@
         let totalImagesCount = 0;
         
         try {
-            // ... (معالجة البيانات بشكل متسلسل) ...
             const coverBase64 = await fileToBase64(coverFile);
             const chaptersArray = [];
             
@@ -472,7 +464,6 @@
             
             chaptersArray.sort((a, b) => a.num - b.num); 
             
-            // ... (بناء كائن المانهوا) ...
             const manhwaObject = {
                 id: manhwaId,
                 title: name,
@@ -486,12 +477,10 @@
             
             const manhwaObjectJSON = JSON.stringify(manhwaObject, null, 4);
 
-            // ... (الدمج الذكي) ...
             const finalDataCode = insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON);
 
             if (!finalDataCode) { return; }
                 
-            // 4. عرض الكود وإضافة الأزرار
             outputArea.innerHTML = `<textarea id="manual-copy-area" dir="ltr">${finalDataCode}</textarea>`;
             addOutputButtons(finalDataCode, name);
 
@@ -512,10 +501,8 @@
             addChapter();
         }
         
-        // إعداد الحفظ التلقائي لكل 3 ثواني
         setInterval(saveFormState, 3000);
 
-        // إضافة حدث الحفظ على حقول النص عند التحرير
         document.querySelectorAll('input:not([type="file"]), textarea').forEach(element => {
             element.addEventListener('input', saveFormState);
         });

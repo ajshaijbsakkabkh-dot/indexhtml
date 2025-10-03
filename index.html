@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>محول ودمج بيانات المانهوا إلى Base64 - إصدار ذكي</title>
+    <title>محول ودمج بيانات المانهوا الذكي - حفظ تلقائي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* الأنماط الأساسية */
@@ -51,11 +51,12 @@
         .add-chapter-btn { background-color: #17a2b8; width: 100%; }
         .generate-btn { background-color: #dc3545; color: white; width: 100%; margin-top: 20px; font-weight: bold; }
         .new-manhwa-btn { background-color: #00b894; width: 100%; margin-bottom: 20px;} 
+        .clear-storage-btn { background-color: #ffc107; color: #343a40; margin-top: 10px; }
 
         /* منطقة الإخراج */
         #output-area { 
             margin-top: 10px;
-            border: 2px solid #007bff; /* لون جديد للناتج النهائي */
+            border: 2px solid #007bff;
             padding: 0; 
             background-color: #fff; 
             max-height: 600px; 
@@ -101,6 +102,7 @@
     </div>
     
     <button class="new-manhwa-btn" onclick="resetForm()">+ مسح النموذج والبدء بمانهوا جديدة</button>
+    <button class="clear-storage-btn" onclick="clearLocalStorage()"><i class="fas fa-eraser"></i> مسح الحفظ التلقائي</button>
     
     <div class="info-section">
         <h2>2. معلومات المانهوا الأساسية</h2>
@@ -146,20 +148,99 @@
 </div>
 
 <script>
+    const STORAGE_KEY = 'manhwaToolData';
     let chapterCount = 0; 
+    let chapterData = []; // لتخزين بيانات الفصول مؤقتاً في Local Storage
 
     // **********************************************
-    // دوال إدارة الواجهة (لم تتغير)
+    // دوال إدارة الواجهة والحفظ التلقائي
     // **********************************************
+    
+    function saveFormState() {
+        const state = {
+            interfaceCode: document.getElementById('interfaceCode').value,
+            manhwaName: document.getElementById('manhwaName').value,
+            manhwaId: document.getElementById('manhwaId').value,
+            category: document.getElementById('category').value,
+            rating: document.getElementById('rating').value,
+            storySummary: document.getElementById('storySummary').value,
+            chapterCount: chapterCount,
+            chapters: []
+        };
+        
+        const chapterSections = document.querySelectorAll('.chapter-section');
+        chapterSections.forEach((section, index) => {
+            const chapNum = section.querySelector('.chapter-number-input').value;
+            const chapTitle = section.querySelector('input[placeholder="ادخل عنوان الفصل"]').value;
+            state.chapters.push({ num: chapNum, title: chapTitle, chapterIndex: index });
+        });
+        
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    
+    function loadFormState() {
+        const storedState = localStorage.getItem(STORAGE_KEY);
+        if (!storedState) return;
 
+        try {
+            const state = JSON.parse(storedState);
+
+            document.getElementById('interfaceCode').value = state.interfaceCode || '';
+            document.getElementById('manhwaName').value = state.manhwaName || 'مانهوا جديدة';
+            document.getElementById('manhwaId').value = state.manhwaId || '1';
+            document.getElementById('category').value = state.category || 'أكشن، خيال، رومانسي';
+            document.getElementById('rating').value = state.rating || '⭐ 4.5';
+            document.getElementById('storySummary').value = state.storySummary || 'ملخص قصة المانهوا...';
+            
+            // إعادة بناء الفصول
+            chapterCount = 0;
+            document.getElementById('chaptersContainer').innerHTML = '';
+            
+            if (state.chapters && state.chapters.length > 0) {
+                state.chapters.forEach(chap => {
+                    // إضافة الفصل
+                    const index = chapterCount;
+                    addChapter(false, chap.chapterIndex); // لا تبدأ بإضافة مجموعة صور
+                    
+                    // استعادة البيانات النصية للفصل
+                    document.getElementById(`chapterNumber-${index}`).value = chap.num;
+                    document.getElementById(`chapterTitle-${index}`).value = chap.title;
+                    
+                    // يجب إضافة مجموعة صور واحدة على الأقل
+                    addImageGroup(index);
+                });
+            } else {
+                addChapter(); // إذا لم يكن هناك فصول، أضف فصلاً افتراضياً
+            }
+
+            alert("✅ تم استعادة بيانات النموذج النصية من آخر حفظ تلقائي.");
+            
+        } catch (e) {
+            console.error("Failed to load state from localStorage:", e);
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }
+
+    function clearLocalStorage() {
+        if (confirm("هل أنت متأكد من مسح جميع بيانات الحفظ التلقائي؟ سيتم مسح جميع المدخلات النصية المحفوظة.")) {
+             localStorage.removeItem(STORAGE_KEY);
+             alert("✅ تم مسح الحفظ التلقائي بنجاح.");
+             // يمكننا إعادة تحميل الحالة النظيفة للنموذج
+             location.reload(); 
+        }
+    }
+
+    // دوال الواجهة (معدلة لاستخدام index خارجي)
     function removeElement(id) {
         const element = document.getElementById(id);
         if (element) {
             element.remove();
         }
+        saveFormState(); // حفظ بعد الإزالة
     }
     
     function addImageGroup(chapterIndex) {
+        // ... (لم يتغير) ...
         const chapterDiv = document.getElementById(`chapter-${chapterIndex}`);
         if (!chapterDiv) return;
         
@@ -172,7 +253,7 @@
                     <label>صور الفصل ${chapterIndex + 1} - خانة ${imageGroupCount + 1}:</label>
                     <button type="button" class="remove-btn" onclick="removeElement('${groupId}')" style="background-color:#dc3545; margin:0; padding: 5px 10px;"><i class="fas fa-times"></i> إزالة</button>
                 </div>
-                <input type="file" name="imageFiles" multiple accept="image/*" class="image-input">
+                <input type="file" name="imageFiles" multiple accept="image/*" class="image-input" onchange="saveFormState()">
             </div>
         `;
         
@@ -180,9 +261,10 @@
         if(chapterContentDiv) {
             chapterContentDiv.insertAdjacentHTML('beforeend', groupHtml);
         }
+        saveFormState(); // حفظ بعد الإضافة
     }
     
-    function addChapter() {
+    function addChapter(withGroup = true) {
         const container = document.getElementById('chaptersContainer');
         const index = chapterCount++;
         const chapterId = `chapter-${index}`;
@@ -195,10 +277,10 @@
                 </h2>
                 
                 <label for="chapterNumber-${index}">رقم الفصل:</label>
-                <input type="number" id="chapterNumber-${index}" value="${index + 1}" class="chapter-number-input" required>
+                <input type="number" id="chapterNumber-${index}" value="${index + 1}" class="chapter-number-input" onchange="saveFormState()" required>
 
                 <label for="chapterTitle-${index}">عنوان الفصل:</label>
-                <input type="text" id="chapterTitle-${index}" value="" placeholder="ادخل عنوان الفصل">
+                <input type="text" id="chapterTitle-${index}" value="" placeholder="ادخل عنوان الفصل" onchange="saveFormState()">
                 
                 <div class="chapter-content">
                     </div>
@@ -208,11 +290,15 @@
         `;
         
         container.insertAdjacentHTML('beforeend', chapterHtml);
-        addImageGroup(index); 
+        if(withGroup) {
+            addImageGroup(index); 
+        }
+        saveFormState(); // حفظ بعد الإضافة
     }
     
     function resetForm() {
         if (confirm("هل أنت متأكد من مسح جميع بيانات النموذج؟")) {
+            document.getElementById('interfaceCode').value = '';
             document.getElementById('manhwaName').value = "مانهوا جديدة";
             document.getElementById('manhwaId').value = "1";
             document.getElementById('category').value = "أكشن، خيال، رومانسي";
@@ -227,19 +313,17 @@
             document.getElementById('output-area').innerHTML = '<p style="text-align: center; color: #6c757d;">سيظهر كود الواجهة الكامل والمدمج هنا بعد التوليد.</p>';
             document.getElementById('outputButtons').style.display = 'none';
             alert("✅ تم مسح بيانات النموذج. يرجى تعديل حقل المعرف (ID) إذا لزم الأمر.");
+            saveFormState(); // حفظ الحالة الفارغة
         }
     }
     
     // **********************************************
-    // دوال المعالجة والدمج الذكي (مُعدلة)
+    // دوال المعالجة والدمج الذكي (لم تتغير وظائفها)
     // **********************************************
 
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
-            if (!file) {
-                resolve('');
-                return;
-            }
+            if (!file) { resolve(''); return; }
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.onerror = (e) => reject(new Error(`فشل قراءة الملف: ${file.name}`));
@@ -286,12 +370,10 @@
         outputButtonsDiv.style.display = 'flex';
     }
 
-    // دالة الدمج الذكي
     function insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON) {
         const targetStart = 'const MANHWAS_DATA = [';
         const targetEnd = '];';
         
-        // 1. تحديد مكان نهاية مصفوفة MANHWAS_DATA
         const arrayEndIndex = interfaceCode.lastIndexOf(targetEnd);
         
         if (arrayEndIndex === -1) {
@@ -301,23 +383,18 @@
 
         const contentBeforeEnd = interfaceCode.substring(0, arrayEndIndex);
         
-        // 2. فحص ما قبل الإغلاق لتحديد ما إذا كنا بحاجة إلى فاصلة (,)
         const trimmedContent = contentBeforeEnd.trim();
         const lastChar = trimmedContent.slice(-1);
 
         let commaPrefix = '';
         if (lastChar === '{') {
-            // المصفوفة بها عنصر واحد على الأقل ينتهي بـ }، لذا نحتاج إلى فاصلة قبل الإضافة الجديدة.
             commaPrefix = ',\n';
         } else if (lastChar === '[') {
-            // المصفوفة فارغة `[`, لا نحتاج لفاصلة.
             commaPrefix = '\n';
         } else {
-             // حالة غير متوقعة، نفترض أن فاصلة مطلوبة (الوضع الآمن).
              commaPrefix = ',\n';
         }
         
-        // 3. إعادة بناء الكود كاملاً
         const newObjectInsertion = commaPrefix + manhwaObjectJSON + '\n';
 
         const finalCode = contentBeforeEnd + newObjectInsertion + targetEnd + interfaceCode.substring(arrayEndIndex + targetEnd.length);
@@ -326,6 +403,7 @@
     }
 
     async function generateDataCode() {
+        // ... (الحصول على المدخلات) ...
         const interfaceCode = document.getElementById('interfaceCode').value.trim();
         const name = document.getElementById('manhwaName').value.trim();
         const manhwaId = parseInt(document.getElementById('manhwaId').value.trim());
@@ -336,9 +414,9 @@
         
         const outputArea = document.getElementById('output-area');
         
-        // التحقق من الإدخالات الأساسية وكود الواجهة
+        // ... (التحقق من الإدخالات) ...
         if (!interfaceCode.includes('const MANHWAS_DATA = [')) {
-             outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء لصق كود الواجهة بالكامل في الخانة المخصصة والتأكد من احتوائه على `const MANHWAS_DATA = [`. عملية الدمج لن تنجح بدونه.</p>';
+             outputArea.innerHTML = '<p style="color: red; text-align: center;">الرجاء لصق كود الواجهة بالكامل والتأكد من احتوائه على `const MANHWAS_DATA = [`. عملية الدمج لن تنجح بدونه.</p>';
              document.getElementById('outputButtons').style.display = 'none';
              return;
         }
@@ -349,14 +427,14 @@
              return;
         }
 
-        outputArea.innerHTML = '<p class="progress-message">جارٍ المعالجة... تحويل الصور إلى Base64. (سوف يتم تحديث رسالة الحالة). ⏳</p>';
+        outputArea.innerHTML = '<p class="progress-message">جارٍ المعالجة... تحويل الصور إلى Base64. (يرجى الانتظار حتى تظهر رسالة الانتهاء). ⏳</p>';
         document.getElementById('outputButtons').style.display = 'none';
 
         const chapterSections = document.querySelectorAll('.chapter-section');
         let totalImagesCount = 0;
         
         try {
-            // 1. معالجة البيانات
+            // ... (معالجة البيانات بشكل متسلسل) ...
             const coverBase64 = await fileToBase64(coverFile);
             const chaptersArray = [];
             
@@ -394,7 +472,7 @@
             
             chaptersArray.sort((a, b) => a.num - b.num); 
             
-            // 2. بناء كائن المانهوا
+            // ... (بناء كائن المانهوا) ...
             const manhwaObject = {
                 id: manhwaId,
                 title: name,
@@ -408,13 +486,10 @@
             
             const manhwaObjectJSON = JSON.stringify(manhwaObject, null, 4);
 
-            // 3. الدمج الذكي
+            // ... (الدمج الذكي) ...
             const finalDataCode = insertManhwaIntoInterfaceCode(interfaceCode, manhwaObjectJSON);
 
-            if (!finalDataCode) {
-                // خطأ في الدمج، الرسالة ظهرت بالفعل من الدالة insertManhwaIntoInterfaceCode
-                return;
-            }
+            if (!finalDataCode) { return; }
                 
             // 4. عرض الكود وإضافة الأزرار
             outputArea.innerHTML = `<textarea id="manual-copy-area" dir="ltr">${finalDataCode}</textarea>`;
@@ -422,6 +497,8 @@
 
             document.getElementById('manual-copy-area').select();
             document.getElementById('manual-copy-area').setSelectionRange(0, 9999999);
+            
+            alert(`✅ تم الانتهاء بنجاح! تم دمج ${totalImagesCount} صورة في الكود. الآن يمكنك نسخ الكود الكامل أو تنزيله.`);
 
 
         } catch (error) {
@@ -429,7 +506,20 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', addChapter);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFormState();
+        if (chapterCount === 0) {
+            addChapter();
+        }
+        
+        // إعداد الحفظ التلقائي لكل 3 ثواني
+        setInterval(saveFormState, 3000);
+
+        // إضافة حدث الحفظ على حقول النص عند التحرير
+        document.querySelectorAll('input:not([type="file"]), textarea').forEach(element => {
+            element.addEventListener('input', saveFormState);
+        });
+    });
 </script>
 
 </body>
